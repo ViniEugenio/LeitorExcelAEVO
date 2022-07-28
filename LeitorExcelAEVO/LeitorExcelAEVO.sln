@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.2.32630.192
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LeitorExcelAEVO", "LeitorExcelAEVO\LeitorExcelAEVO.csproj", "{C0CC8C96-7303-4A2C-8A4E-904DD1015E5B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C0CC8C96-7303-4A2C-8A4E-904DD1015E5B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C0CC8C96-7303-4A2C-8A4E-904DD1015E5B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C0CC8C96-7303-4A2C-8A4E-904DD1015E5B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C0CC8C96-7303-4A2C-8A4E-904DD1015E5B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {D5C15030-ED5E-46C6-BAF5-04FBE95FB1BA}
+	EndGlobalSection
+EndGlobal
