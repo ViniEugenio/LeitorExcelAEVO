@@ -20,18 +20,7 @@ namespace LeitorExcelAEVO
             while (OpcaoSelecionada != 0)
             {
 
-                switch (OpcaoSelecionada)
-                {
-
-                    case 1:
-                        ProcessarArquivo();
-                        break;
-
-                    default:
-                        Console.WriteLine("A opção selecionada não existe, por favor selecione outra opção!");
-                        break;
-
-                }
+                RealizarPasso(OpcaoSelecionada);
 
                 Console.WriteLine();
                 Console.WriteLine();
@@ -64,7 +53,19 @@ namespace LeitorExcelAEVO
                 new Opcoes()
                 {
                     Id = 1,
-                    Titulo = "Processar arquivo"
+                    Titulo = "Processar 1º Passo"
+                },
+
+                new Opcoes()
+                {
+                    Id = 2,
+                    Titulo = "Processar 2º Passo"
+                },
+
+                new Opcoes()
+                {
+                    Id = 3,
+                    Titulo = "Processar 3º Passo"
                 }
 
             };
@@ -80,16 +81,16 @@ namespace LeitorExcelAEVO
 
         }
 
-        private static void ProcessarArquivo()
+        private static void RealizarPasso(int passo)
         {
 
-            Console.WriteLine("--------------- PROCESSANDO ARQUIVO ---------------");
+            Console.WriteLine($"--------------- PROCESSANDO {passo}º PASSO ---------------");
             Console.WriteLine();
             Console.WriteLine();
 
-            string FileName = "script.sql";
+            string FileName = $"script-{passo}-passo.sql";
 
-            var Dados = ReadFile();
+            var Dados = ReadFile(passo);
             if (Dados == null)
             {
                 Console.WriteLine("Não foi possível ler o arquivo ou o arquivo está em branco, cheque o arquivo e tente novamente!");
@@ -100,26 +101,130 @@ namespace LeitorExcelAEVO
 
                 string FilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), FileName);
                 FileInfo FileInfo = new FileInfo(FilePath);
-                bool Exists = FileInfo.Exists;
 
-                int NumeroScript = 0;
-                while (Exists)
+                if (FileInfo.Exists)
                 {
 
-                    NumeroScript = NumeroScript + 1;
-                    FileName = $"script{NumeroScript}.sql";
-                    FilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), FileName);
-                    FileInfo = new FileInfo(FilePath);
-                    Exists = FileInfo.Exists;
+                    FileInfo.Delete();
 
                 }
 
                 using (StreamWriter writer = new StreamWriter(FilePath))
                 {
 
-                    foreach (var dado in Dados)
+                    var DadosFormatados = Dados.GroupBy(dado => dado.Associacao);
+
+                    if (passo == 1)
                     {
-                        writer.WriteLine($"UPDATE AspNetUsers set UserName = '{dado.UserName}' where Email = '{dado.Email}'");
+
+                        foreach (var dado in DadosFormatados)
+                        {
+
+                            string CadastrarGrupo = string.Empty;
+                            string GestorDepartamento = $"( select Id from AspNetUsers where [UserName] = '{dado.First().NomeUsuario}' )";
+
+                            if (dado.Count() > 1)
+                            {
+
+                                CadastrarGrupo = $@"
+
+                                    INSERT INTO AspNetGroups ( Id, Name, Descricao, Ativo, DataAtualizacao, UsarRegraDinamica, ConfiguracaoRegras, Status, GrupoParaImplantacao )
+                                    VALUES ( NEWID(), 'Grupo - {dado.Key}', NULL, 1, NULL, 0, NULL, NULL, NULL )
+
+                                    INSERT INTO AspNetUserGroups ( GrupoId, UsuarioId )
+                                    select (select Id from AspNetGroups where [Name] = 'Grupo - {dado.Key}'), Id from AspNetUsers where [UserName] in ({string.Join(",", dado.Select(x => $"'{x.NomeUsuario}'").Distinct())})
+
+                                ";
+
+                                GestorDepartamento = $"(select Id from AspNetGroups where [Name] = 'Grupo - {dado.Key}')";
+
+                            }
+
+                            writer.WriteLine($@"                                
+
+                                {CadastrarGrupo}
+
+                                IF (select count(1) from Departamento where Nome = '{dado.Key}') = 0
+                                BEGIN
+
+                                    INSERT INTO Departamento ( Nome, GestorId, Padrao, Ativa)
+                                    VALUES ( '{dado.Key}', {GestorDepartamento}, 0, 1 )
+
+                                END
+
+                                ELSE
+                                BEGIN
+
+                                   UPDATE Departamento set GestorId = {GestorDepartamento} where Nome = '{dado.Key}'
+
+                                END                                                               
+
+                            ");
+
+                            writer.WriteLine(string.Empty);
+
+                        }
+
+                    }
+
+                    if (passo == 2)
+                    {
+
+                        foreach (var dado in DadosFormatados)
+                        {
+
+                            var NomesUsuarios = dado.Select(x => x.NomeUsuario).Distinct();
+
+                            foreach (var Nome in NomesUsuarios)
+                            {
+
+                                writer.WriteLine($@"
+
+                                    IF (select count(1) from Departamento where Nome = '{dado.Key}') = 0
+                                    BEGIN
+
+                                        INSERT INTO Departamento ( Nome, GestorId, Padrao, Ativa)
+                                        VALUES ( '{dado.Key}', (select GestorId from Departamento where Padrao = 1), 0, 1 )
+
+                                    END
+
+                                    UPDATE AspNetUsers set DepartamentoId = ( select Id from Departamento where Nome = '{dado.Key}' ) where UserName = '{Nome}'
+
+                                    UPDATE Ideia set DepartamentoId = ( select DepartamentoId from AspNetUsers where [UserName] = '{Nome}' ) 
+                                    where ElaboradorId = ( select Id from AspNetUsers where [UserName] = '{Nome}' )
+
+                                ");
+
+                            }
+
+
+                        }
+
+                    }
+
+                    if (passo == 3)
+                    {
+
+                        foreach (var dado in DadosFormatados)
+                        {
+
+                            writer.WriteLine($@"
+
+                                    IF ( select COUNT(1) from AspNetGroups where [Name] = '{dado.Key}' ) = 0
+                                    BEGIN
+
+                                        INSERT INTO AspNetGroups ( Id, Name, Descricao, Ativo, DataAtualizacao, UsarRegraDinamica, ConfiguracaoRegras, Status, GrupoParaImplantacao )
+                                        VALUES ( NEWID(), '{dado.Key}', NULL, 1, NULL, 0, NULL, NULL, NULL )
+
+                                    END
+
+                                    INSERT INTO AspNetUserGroups ( GrupoId, UsuarioId )
+                                    select (select Id from AspNetGroups where [Name] = '{dado.Key}'), Id from AspNetUsers where [UserName] in ({string.Join(",", dado.Select(x => $"'{x.NomeUsuario}'").Distinct())})
+                                    
+                                ");
+
+                        }
+
                     }
 
                 }
@@ -130,20 +235,46 @@ namespace LeitorExcelAEVO
 
             Console.WriteLine();
             Console.WriteLine();
-            Console.WriteLine("--------------- ARQUIVO PROCESSADO ---------------");
+            Console.WriteLine($"--------------- {passo}º PASSO PROCESSADO ---------------");
 
         }
 
 
-        private static List<Dados> ReadFile()
+        private static List<Dado> ReadFile(int passo)
         {
 
             try
             {
 
-                List<Dados> Dados = new List<Dados>();
+                int NumeroPlanilha = 0;
+                int ColunaNomeUsuario = 2;
+                int ColunaAssociado = 3;
 
-                using (ExcelPackage xlPackage = new ExcelPackage(new FileInfo("F:\\dados.xlsx")))
+                if (passo == 1)
+                {
+
+                    NumeroPlanilha = 2;
+
+                }
+
+
+                else if (passo == 2)
+                {
+
+                    NumeroPlanilha = 1;
+                    ColunaNomeUsuario = 2;
+                    ColunaAssociado = 4;
+
+                }
+
+                else if (passo == 3)
+                {
+                    NumeroPlanilha = 4;
+                }
+
+                List<Dado> Dados = new List<Dado>();
+
+                using (ExcelPackage xlPackage = new ExcelPackage(new FileInfo($"F:\\{NumeroPlanilha}.xlsx")))
                 {
 
                     ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
@@ -154,15 +285,15 @@ namespace LeitorExcelAEVO
                     for (int rowNum = 2; rowNum <= totalRows; rowNum++)
                     {
 
-                        var UserNameCell = myWorksheet.Cells[rowNum, 2].Value;
-                        var EmailCell = myWorksheet.Cells[rowNum, 4].Value;
+                        var UserNameCell = myWorksheet.Cells[rowNum, ColunaNomeUsuario].Value;
+                        var AssociadoCell = myWorksheet.Cells[rowNum, ColunaAssociado].Value;
 
-                        if (UserNameCell != null && EmailCell != null)
+                        if (UserNameCell != null && AssociadoCell != null)
                         {
-                            Dados.Add(new Dados()
+                            Dados.Add(new Dado()
                             {
-                                UserName = UserNameCell.ToString(),
-                                Email = EmailCell.ToString()
+                                NomeUsuario = UserNameCell.ToString(),
+                                Associacao = AssociadoCell.ToString()
                             });
                         }
 
@@ -181,10 +312,12 @@ namespace LeitorExcelAEVO
 
         }
 
-        private class Dados
+        public class Dado
         {
-            public string UserName { get; set; }
-            public string Email { get; set; }
+
+            public string NomeUsuario { get; set; }
+            public string Associacao { get; set; }
+
         }
 
         private class Opcoes
