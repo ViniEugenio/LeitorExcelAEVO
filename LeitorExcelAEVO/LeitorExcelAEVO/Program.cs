@@ -66,6 +66,12 @@ namespace LeitorExcelAEVO
                 {
                     Id = 3,
                     Titulo = "Processar 3º Passo"
+                },
+
+                new Opcoes()
+                {
+                    Id = 10,
+                    Titulo = "Script Ryan"
                 }
 
             };
@@ -220,11 +226,26 @@ namespace LeitorExcelAEVO
                                     END
 
                                     INSERT INTO AspNetUserGroups ( GrupoId, UsuarioId )
-                                    select (select Id from AspNetGroups where [Name] = '{dado.Key}'), Id from AspNetUsers where [UserName] in ({string.Join(",", dado.Select(x => $"'{x.NomeUsuario}'").Distinct())})
+                                    select (select Id from AspNetGroups where [Name] = '{dado.Key}'), Id from AspNetUsers where [UserName] in ({string.Join(",", dado.Select(x => $"'{x.NomeUsuario.Trim()}'").Distinct())})
                                     
                                 ");
 
                         }
+
+                    }
+
+                    if (passo == 10)
+                    {
+
+                        writer.WriteLine($@"
+
+                            insert into AspNetUserClaims (UserId, ClaimType, ClaimValue)
+                            select Id, '5330b15b-1b51-4d48-977a-74a7e72e67f2', 'True' from AspNetUsers 
+                            where Email in (
+                                {string.Join("\n,", Dados.Select(dado => $"'{dado.Associacao}'"))}
+                            )    
+
+                        ");
 
                     }
 
@@ -271,6 +292,13 @@ namespace LeitorExcelAEVO
                 else if (passo == 3)
                 {
                     NumeroPlanilha = 4;
+                }
+
+                else if (passo == 10)
+                {
+                    NumeroPlanilha = 10;
+                    ColunaNomeUsuario = 1;
+                    ColunaAssociado = 2;
                 }
 
                 List<Dado> Dados = new List<Dado>();
