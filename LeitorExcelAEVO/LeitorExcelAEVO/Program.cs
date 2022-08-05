@@ -123,7 +123,8 @@ namespace LeitorExcelAEVO
                             string CadastrarGrupo = string.Empty;
                             string GestorDepartamento = $"( select Id from AspNetUsers where [UserName] = '{dado.First().NomeUsuario}' )";
 
-                            if (dado.Count() > 1)
+                            var Usuarios = dado.Select(x => $"'{x.NomeUsuario}'").Distinct();
+                            if (Usuarios.Count() > 1)
                             {
 
                                 CadastrarGrupo = $@"
@@ -132,7 +133,7 @@ namespace LeitorExcelAEVO
                                     VALUES ( NEWID(), 'Grupo - {dado.Key}', NULL, 1, NULL, 0, NULL, NULL, NULL )
 
                                     INSERT INTO AspNetUserGroups ( GrupoId, UsuarioId )
-                                    select (select Id from AspNetGroups where [Name] = 'Grupo - {dado.Key}'), Id from AspNetUsers where [UserName] in ({string.Join(",", dado.Select(x => $"'{x.NomeUsuario}'").Distinct())})
+                                    select (select Id from AspNetGroups where [Name] = 'Grupo - {dado.Key}'), Id from AspNetUsers where [UserName] in ({string.Join(",", Usuarios)})
 
                                 ";
 
