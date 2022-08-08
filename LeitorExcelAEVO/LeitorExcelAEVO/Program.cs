@@ -70,6 +70,12 @@ namespace LeitorExcelAEVO
 
                 new Opcoes()
                 {
+                    Id = 4,
+                    Titulo = "Processar 4º Passo"
+                },
+
+                new Opcoes()
+                {
                     Id = 10,
                     Titulo = "Script Ryan"
                 }
@@ -228,7 +234,30 @@ namespace LeitorExcelAEVO
                                     INSERT INTO AspNetUserGroups ( GrupoId, UsuarioId )
                                     select (select Id from AspNetGroups where [Name] = '{dado.Key}'), Id from AspNetUsers where [UserName] in ({string.Join(",", dado.Select(x => $"'{x.NomeUsuario.Trim()}'").Distinct())})
                                     
+                            ");
+
+                        }
+
+                    }
+
+                    if (passo == 4)
+                    {
+
+                        foreach (var dado in Dados)
+                        {
+
+                            if (dado.NomeUsuario != "37806523")
+                            {
+
+                                writer.WriteLine($@"
+
+                                    UPDATE Departamento set GestorId = ( select Id from AspNetUsers where UserName = '{dado.NomeUsuario}' )
+                                    where Nome = '{dado.Associacao}'
+
                                 ");
+
+                            }
+                            
 
                         }
 
@@ -292,6 +321,13 @@ namespace LeitorExcelAEVO
                 else if (passo == 3)
                 {
                     NumeroPlanilha = 4;
+                }
+
+                else if (passo == 4)
+                {
+                    NumeroPlanilha = 11;
+                    ColunaNomeUsuario = 2;
+                    ColunaAssociado = 3;
                 }
 
                 else if (passo == 10)
