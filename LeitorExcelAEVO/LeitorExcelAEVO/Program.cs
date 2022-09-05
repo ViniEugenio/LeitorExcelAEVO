@@ -76,8 +76,20 @@ namespace LeitorExcelAEVO
 
                 new Opcoes()
                 {
-                    Id = 10,
-                    Titulo = "Script Ryan"
+                    Id = 5,
+                    Titulo = "De Para Irani"
+                },
+
+                new Opcoes()
+                {
+                    Id = 6,
+                    Titulo = "Gestor do Departamento"
+                },
+
+                new Opcoes()
+                {
+                    Id = 7,
+                    Titulo = "De-Para Produção Irani"
                 }
 
             };
@@ -257,7 +269,24 @@ namespace LeitorExcelAEVO
                                 ");
 
                             }
-                            
+
+
+                        }
+
+                    }
+
+                    if (passo == 5)
+                    {
+
+                        var UsuariosAtivos = Dados.Where(dado => dado.Ativo).ToList();
+                        foreach (var usuario in UsuariosAtivos)
+                        {
+
+                            writer.WriteLine($@"
+
+                                    UPDATE AspNetUsers SET UserName = '{usuario.Associacao}' where UserName = '{usuario.NomeUsuario}'
+
+                            ");
 
                         }
 
@@ -275,6 +304,39 @@ namespace LeitorExcelAEVO
                             )    
 
                         ");
+
+                    }
+
+                    if (passo == 6)
+                    {
+
+                        foreach (var dado in Dados)
+                        {
+
+                            writer.WriteLine($@"
+
+                                update Departamento set GestorId = ( select Id from AspNetUsers where UserName = '{dado.NomeUsuario}' )
+                                where Nome = '{dado.Associacao}'
+
+                            ");
+
+                        }
+
+                    }
+
+                    if (passo == 7)
+                    {
+
+                        foreach (var dado in Dados)
+                        {
+
+                            writer.WriteLine($@"
+
+                                update AspNetUsers set UserName = '{dado.Associacao}' where UserName = '{dado.NomeUsuario}'
+
+                            ");
+
+                        }
 
                     }
 
@@ -300,6 +362,7 @@ namespace LeitorExcelAEVO
                 int NumeroPlanilha = 0;
                 int ColunaNomeUsuario = 2;
                 int ColunaAssociado = 3;
+                int Ativo = 6;
 
                 if (passo == 1)
                 {
@@ -337,9 +400,29 @@ namespace LeitorExcelAEVO
                     ColunaAssociado = 2;
                 }
 
+                else if (passo == 5)
+                {
+                    ColunaNomeUsuario = 2;
+                    ColunaAssociado = 4;
+                }
+
+                else if (passo == 6)
+                {
+                    ColunaNomeUsuario = 2;
+                    ColunaAssociado = 3;
+                    NumeroPlanilha = 13;
+                }
+
+                else if (passo == 7)
+                {
+                    ColunaNomeUsuario = 2;
+                    ColunaAssociado = 3;
+                    NumeroPlanilha = 666;
+                }
+
                 List<Dado> Dados = new List<Dado>();
 
-                using (ExcelPackage xlPackage = new ExcelPackage(new FileInfo($"F:\\{NumeroPlanilha}.xlsx")))
+                using (ExcelPackage xlPackage = new ExcelPackage(new FileInfo($"F:\\{(passo == 5 ? "irani" : NumeroPlanilha)}.xlsx")))
                 {
 
                     ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
@@ -352,14 +435,18 @@ namespace LeitorExcelAEVO
 
                         var UserNameCell = myWorksheet.Cells[rowNum, ColunaNomeUsuario].Value;
                         var AssociadoCell = myWorksheet.Cells[rowNum, ColunaAssociado].Value;
+                        //var AtivoCell = myWorksheet.Cells[rowNum, Ativo].Value;
 
                         if (UserNameCell != null && AssociadoCell != null)
                         {
+
                             Dados.Add(new Dado()
                             {
                                 NomeUsuario = UserNameCell.ToString(),
                                 Associacao = AssociadoCell.ToString()
+                                //Ativo = Convert.ToBoolean(AtivoCell)
                             });
+
                         }
 
                     }
@@ -382,6 +469,7 @@ namespace LeitorExcelAEVO
 
             public string NomeUsuario { get; set; }
             public string Associacao { get; set; }
+            public bool Ativo { get; set; }
 
         }
 
